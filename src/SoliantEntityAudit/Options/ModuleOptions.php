@@ -7,6 +7,7 @@ use Doctrine\ORM\EntityManager
 
 class ModuleOptions
 {
+    private $idDataType;
     private $prefix;
     private $suffix;
     private $revisionTableName;
@@ -31,6 +32,7 @@ class ModuleOptions
         $this->setUserEntityClassName(isset($config['userEntityClassName']) ? $config['userEntityClassName']: 'ZfcUserDoctrineORM\\Entity\\User');
         $this->setAuthenticationService(isset($config['authenticationService']) ? $config['authenticationService']: 'zfcuser_auth_service');
         $this->setSoftDeletableInterfaceName(isset($config['softDeletableInterfaceName']) ? $config['softDeletableInterfaceName']: '');
+        $this->setIdDataType(isset($config['idDataType']) ? $config['idDataType']: array('type' => 'integer'));
     }
 
     public function getAuditService()
@@ -196,5 +198,15 @@ class ModuleOptions
     public function setSoftDeletableInterfaceName($softDeletableInterfaceName)
     {
         $this->softDeletableInterfaceName = $softDeletableInterfaceName;
+    }
+
+    public function setIdDataType($idDataType)
+    {
+        $this->idDataType = $idDataType;
+    }
+
+    public function getIdDataType()
+    {
+        return $this->idDataType;
     }
 }

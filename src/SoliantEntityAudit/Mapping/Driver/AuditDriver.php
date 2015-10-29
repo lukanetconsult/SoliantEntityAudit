@@ -6,7 +6,9 @@ use Doctrine\Common\Persistence\Mapping\ClassMetadata
     , Doctrine\Common\Persistence\Mapping\Driver\MappingDriver
     , Doctrine\ORM\Mapping\Builder\ClassMetadataBuilder
     , Doctrine\ORM\Mapping\MappingException
-    ;
+    , Doctrine\ORM\Mapping\ClassMetadataFactory
+;
+
 
 final class AuditDriver implements MappingDriver
 {
@@ -24,7 +26,7 @@ final class AuditDriver implements MappingDriver
         $builder = new ClassMetadataBuilder($metadata);
 
         if ($className == 'SoliantEntityAudit\\Entity\RevisionEntity') {
-            $builder->createField('id', 'integer')->isPrimaryKey()->generatedValue()->build();
+            $this->createPrimaryKeyField($builder, $moduleOptions);
             $builder->addManyToOne('revision', 'SoliantEntityAudit\\Entity\\Revision', 'revisionEntities');
             $builder->addField('entityKeys', 'string');
             $builder->addField('auditEntityClass', 'string');
@@ -38,7 +40,7 @@ final class AuditDriver implements MappingDriver
 
         // Revision is managed here rather than a separate namespace and driver
         if ($className == 'SoliantEntityAudit\\Entity\\Revision') {
-            $builder->createField('id', 'integer')->isPrimaryKey()->generatedValue()->build();
+            $this->createPrimaryKeyField($builder, $moduleOptions);
             $builder->addField('comment', 'text', array('nullable' => true));
             $builder->addField('timestamp', 'datetime');
 
@@ -64,7 +66,7 @@ final class AuditDriver implements MappingDriver
         $joinClasses = $moduleOptions->getJoinClasses();
         if (in_array($className, array_keys($joinClasses))) {
 
-            $builder->createField('id', 'integer')->isPrimaryKey()->generatedValue()->build();
+            $this->createPrimaryKeyField($builder, $moduleOptions);
 
             $builder->addManyToOne('targetRevisionEntity', 'SoliantEntityAudit\\Entity\\RevisionEntity');
             $builder->addManyToOne('sourceRevisionEntity', 'SoliantEntityAudit\\Entity\\RevisionEntity');
@@ -113,11 +115,11 @@ final class AuditDriver implements MappingDriver
 
                 if (isset($mapping['joinTableColumns'])) {
                     foreach ($mapping['joinTableColumns'] as $field) {
-                        $builder->addField($mapping['fieldName'], 'integer', array('nullable' => true, 'columnName' => $field));
+                        $this->addJoinTableField($builder, $field, $mapping, $metadataFactory);
                     }
                 } elseif (isset($mapping['joinColumnFieldNames'])) {
                     foreach ($mapping['joinColumnFieldNames'] as $field) {
-                        $builder->addField($mapping['fieldName'], 'integer', array('nullable' => true, 'columnName' => $field));
+                        $this->addJoinTableField($builder, $field, $mapping, $metadataFactory);
                     }
                 } else {
                     throw new \Exception('Unhandled association mapping');
@@ -205,5 +207,55 @@ final class AuditDriver implements MappingDriver
         );
 
         return in_array($className, $classNames);
+    }
+
+    /**
+     * @param ClassMetadataBuilder $builder
+     * @param ModuleOptions $moduleOptions
+     */
+    protected function createPrimaryKeyField($builder, $moduleOptions)
+    {
+        $idDataType = $moduleOptions->getIdDataType();
+        $idDataTypeType = $idDataType['type'];
+        unset($idDataType['type']);
+
+        $fieldBuilder = $builder->createField('id', $idDataTypeType)->makePrimaryKey()->generatedValue();
+
+        if (array_key_exists('options', $idDataType)) {
+            foreach ($idDataType['options'] as $optionName => $optionValue) {
+                $fieldBuilder->option($optionName, $optionValue);
+            }
+
+            unset($idDataType['options']);
+        }
+
+        foreach ($idDataType as $key => $value) {
+            $fieldBuilder->$key($value);
+        }
+
+        $fieldBuilder->build();
+    }
+
+    /**
+     * @param ClassMetadataBuilder $builder
+     * @param array $mapping
+     * @param ClassMetadataFactory $metadataFactory
+     */
+    protected function addJoinTableField($builder, $field, $mapping, $metadataFactory)
+    {
+        $targetFieldName = $metadataFactory->getMetadataFor($mapping['sourceEntity'])->getAssociationMapping($mapping['fieldName'])['sourceToTargetKeyColumns'][$field];
+        $fieldMapping    = $metadataFactory->getMetadataFor($mapping['targetEntity'])->getFieldMapping($targetFieldName);
+        $idDataTypeType  = $fieldMapping['type'];
+        $fieldMapping['columnName'] = $field;
+        $fieldMapping['nullable'] = true;
+
+        unset($fieldMapping['id']);
+        unset($fieldMapping['type']);
+        unset($fieldMapping['unique']);
+        unset($fieldMapping['fieldName']);
+        unset($fieldMapping['inherited']);
+        unset($fieldMapping['declared']);
+
+        $builder->addField($mapping['fieldName'], $idDataTypeType, $fieldMapping);
     }
 }

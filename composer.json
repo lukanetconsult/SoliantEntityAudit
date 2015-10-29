@@ -17,6 +17,11 @@
             "name": "Tom Anderson",
             "email": "tanderson@soliantconsulting.com",
             "homepage": "http://www.soliantconsulting.com"
+        },
+        {
+            "name": "Stefan Goldbach",
+            "email": "goldbach@machart-studios.de",
+            "homepage": "http://www.machart-studios.de"
         }
     ],
     "require": {

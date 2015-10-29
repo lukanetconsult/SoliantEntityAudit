@@ -45,7 +45,32 @@ return array(
         'revisionEntityTableName' => 'RevisionEntity',
 
         'softDeletableInterfaceName' => '',
-              
+
+        /*
+         * The default: signed int
+
+            'idDataType' => array (
+                'type' => 'integer'
+            ),
+
+         * unsigned 64bit integer
+
+            'idDataType' => array (
+                'type' => 'bigint',
+                'options' => array (
+                    'unsigned' => true
+                )
+            ),
+
+         * 10 digit decimal
+
+            'idDataType' => array (
+                'type' => 'decimal',
+                'scale' => 0,
+                'precision' => 10
+            ),
+        */
+
         /*
          * Entities to audit are specified as array keys
             
